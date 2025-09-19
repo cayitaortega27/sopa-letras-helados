@@ -679,16 +679,11 @@
             });
             
             // WhatsApp notification
-            whatsappBtn.addEventListener('click', function() {
-                // Número de teléfono (cambia por el número deseado)
-                const phoneNumber = "+53 5 0917589";
-                
-                // Mensaje predefinido
-                const message = "¡He completado la Sopa de Letras de Helados!";
-                
-                // Abrir WhatsApp con el mensaje
-                window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-            });
+          whatsappBtn.addEventListener('click', function() {
+    const message = "¡He completado la Sopa de Letras de Helados!";
+    // Abrir WhatsApp sin número específico (el usuario elegirá el contacto)
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+});
             
             // Screenshot instructions
             screenshotBtn.addEventListener('click', function() {
@@ -712,4 +707,5 @@
         });
     </script>
 </body>
+
 </html>
