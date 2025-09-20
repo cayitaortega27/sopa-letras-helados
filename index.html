@@ -678,12 +678,14 @@
                 }
             });
             
-            // WhatsApp notification
-          whatsappBtn.addEventListener('click', function() {
-    const message = "¡He completado la Sopa de Letras de Helados!";
-    // Abrir WhatsApp sin número específico (el usuario elegirá el contacto)
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-});
+            // WhatsApp notification - MODIFICADO: Sin número específico
+            whatsappBtn.addEventListener('click', function() {
+                // Mensaje predefinido
+                const message = "¡He completado la Sopa de Letras de Helados! 🍦\n\nEncontré todas las palabras, incluyendo DANDELION, DOMICILIO y CREMOSO.";
+                
+                // Abrir WhatsApp sin número específico (el usuario elegirá el contacto)
+                window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
+            });
             
             // Screenshot instructions
             screenshotBtn.addEventListener('click', function() {
@@ -707,5 +709,4 @@
         });
     </script>
 </body>
-
 </html>
