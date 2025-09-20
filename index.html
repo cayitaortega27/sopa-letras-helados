@@ -10,6 +10,10 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         body {
@@ -20,6 +24,7 @@
             align-items: center;
             padding: 20px;
             color: #4a4a4a;
+            touch-action: manipulation;
         }
         
         .container {
@@ -73,6 +78,7 @@
         .word-search {
             flex: 2;
             min-width: 300px;
+            overflow: auto;
         }
         
         .grid {
@@ -80,6 +86,7 @@
             grid-template-columns: repeat(15, 1fr);
             gap: 3px;
             margin-bottom: 15px;
+            touch-action: none;
         }
         
         .cell {
@@ -93,8 +100,8 @@
             border-radius: 4px;
             font-weight: bold;
             cursor: pointer;
-            user-select: none;
             transition: all 0.2s;
+            font-size: clamp(12px, 3vw, 20px);
         }
         
         .cell.selected {
@@ -128,6 +135,7 @@
             border-radius: 5px;
             display: flex;
             align-items: center;
+            font-size: clamp(14px, 2.5vw, 16px);
         }
         
         .word-item.found {
@@ -152,6 +160,7 @@
             justify-content: center;
             gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
         button {
@@ -165,6 +174,7 @@
             font-weight: bold;
             transition: all 0.3s;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            min-width: 160px;
         }
         
         button:hover {
@@ -290,6 +300,51 @@
             .modal-options {
                 flex-direction: column;
             }
+            
+            .grid {
+                gap: 2px;
+            }
+            
+            .cell {
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            button {
+                padding: 10px 20px;
+                min-width: 140px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .instructions {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .cell {
+                font-size: 12px;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -301,7 +356,7 @@
         </header>
         
         <div class="instructions">
-            <p><strong>Instrucciones:</strong> Encuentra las palabras en la sopa de letras. Haz clic en la primera letra y arrastra hasta la última letra para seleccionar una palabra.</p>
+            <p><strong>Instrucciones:</strong> Encuentra las palabras en la sopa de letras. Toca la primera letra y arrastra hasta la última letra para seleccionar una palabra.</p>
             <p><strong>Importante:</strong> Solo tienes un intento. Cuando encuentres todas las palabras, verás un mensaje especial.</p>
         </div>
         
@@ -481,20 +536,26 @@
                         celda.dataset.fila = i;
                         celda.dataset.columna = j;
                         
-                        // Eventos para selección
+                        // Eventos para selección (ratón)
                         celda.addEventListener('mousedown', iniciarSeleccion);
                         celda.addEventListener('mouseenter', continuarSeleccion);
                         celda.addEventListener('mouseup', finalizarSeleccion);
+                        
+                        // Eventos para selección (touch)
+                        celda.addEventListener('touchstart', manejarTouchStart, {passive: false});
+                        celda.addEventListener('touchmove', manejarTouchMove, {passive: false});
+                        celda.addEventListener('touchend', manejarTouchEnd);
                         
                         gridElement.appendChild(celda);
                     }
                 }
             }
             
-            // Manejar inicio de selección
+            // Manejar inicio de selección (ratón)
             function iniciarSeleccion(e) {
                 if (intentoRealizado || juegoCompletado) return;
                 
+                e.preventDefault();
                 seleccionando = true;
                 seleccionInicio = {
                     fila: parseInt(e.target.dataset.fila),
@@ -504,7 +565,26 @@
                 agregarCeldaSeleccionada(seleccionInicio.fila, seleccionInicio.columna);
             }
             
-            // Manejar continuación de selección
+            // Manejar inicio de selección (touch)
+            function manejarTouchStart(e) {
+                if (intentoRealizado || juegoCompletado) return;
+                
+                e.preventDefault();
+                const touch = e.touches[0];
+                const celda = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (celda && celda.classList.contains('cell')) {
+                    seleccionando = true;
+                    seleccionInicio = {
+                        fila: parseInt(celda.dataset.fila),
+                        columna: parseInt(celda.dataset.columna)
+                    };
+                    limpiarSeleccion();
+                    agregarCeldaSeleccionada(seleccionInicio.fila, seleccionInicio.columna);
+                }
+            }
+            
+            // Manejar continuación de selección (ratón)
             function continuarSeleccion(e) {
                 if (!seleccionando || intentoRealizado || juegoCompletado) return;
                 
@@ -539,8 +619,56 @@
                 }
             }
             
-            // Manejar final de selección
+            // Manejar continuación de selección (touch)
+            function manejarTouchMove(e) {
+                if (!seleccionando || intentoRealizado || juegoCompletado) return;
+                
+                e.preventDefault();
+                const touch = e.touches[0];
+                const celda = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (celda && celda.classList.contains('cell')) {
+                    const filaActual = parseInt(celda.dataset.fila);
+                    const columnaActual = parseInt(celda.dataset.columna);
+                    
+                    limpiarSeleccion();
+                    
+                    // Determinar dirección de selección
+                    const difFila = filaActual - seleccionInicio.fila;
+                    const difColumna = columnaActual - seleccionInicio.columna;
+                    
+                    // Solo permitir selección en línea recta
+                    if (difFila !== 0 && difColumna !== 0 && Math.abs(difFila) !== Math.abs(difColumna)) {
+                        return;
+                    }
+                    
+                    const pasoFila = difFila === 0 ? 0 : difFila / Math.abs(difFila);
+                    const pasoColumna = difColumna === 0 ? 0 : difColumna / Math.abs(difColumna);
+                    
+                    // Agregar celdas en la dirección seleccionada
+                    let i = seleccionInicio.fila;
+                    let j = seleccionInicio.columna;
+                    
+                    while (true) {
+                        agregarCeldaSeleccionada(i, j);
+                        
+                        if (i === filaActual && j === columnaActual) break;
+                        
+                        i += pasoFila;
+                        j += pasoColumna;
+                    }
+                }
+            }
+            
+            // Manejar final de selección (ratón)
             function finalizarSeleccion() {
+                if (!seleccionando || intentoRealizado || juegoCompletado) return;
+                
+                seleccionando = false;
+            }
+            
+            // Manejar final de selección (touch)
+            function manejarTouchEnd() {
                 if (!seleccionando || intentoRealizado || juegoCompletado) return;
                 
                 seleccionando = false;
@@ -678,13 +806,16 @@
                 }
             });
             
-            // WhatsApp notification - MODIFICADO: Sin número específico
+            // WhatsApp notification
             whatsappBtn.addEventListener('click', function() {
-                // Mensaje predefinido
-                const message = "¡He completado la Sopa de Letras de Helados! 🍦\n\nEncontré todas las palabras, incluyendo DANDELION, DOMICILIO y CREMOSO.";
+                // Número de teléfono
+                const phoneNumber = "+5350917589";
                 
-                // Abrir WhatsApp sin número específico (el usuario elegirá el contacto)
-                window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
+                // Mensaje predefinido
+                const message = "¡He completado la Sopa de Letras de Helados!";
+                
+                // Abrir WhatsApp con el mensaje
+                window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
             });
             
             // Screenshot instructions
